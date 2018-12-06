@@ -160,12 +160,6 @@
 	</dependencies>
 	<build>
 		<finalName>chaincode</finalName>
-		<sourceDirectory>src/main/java</sourceDirectory>
-		<resources>
-			<resource>
-				<directory>src/main/resources</directory>
-			</resource>
-		</resources>
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -193,8 +187,8 @@
 									<mainClass>com.penglecode.fabric.chaincode.bankmaster.chaincode.BankMasterChaincode</mainClass>
 								</transformer>
 								<transformer
-									implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
-									<file>logback.xml</file>
+									implementation="org.apache.maven.plugins.shade.resource.XmlAppendingTransformer">
+									<resource>logback.xml</resource>
 								</transformer>
 							</transformers>
 							<filters>
@@ -212,5 +206,23 @@
 				</executions>
 			</plugin>
 		</plugins>
+		<resources>
+			<!-- 编译之后包含xml -->
+			<resource>
+				<directory>src/main/java</directory>
+				<includes>
+					<include>**/*.xml</include>
+				</includes>
+				<filtering>false</filtering>
+			</resource>
+			<!-- 编译之后包含xml和properties -->
+			<resource>
+				<directory>src/main/resources</directory>
+				<includes>
+					<include>**/*</include>
+				</includes>
+				<filtering>false</filtering>
+			</resource>
+		</resources>
 	</build>
 </project>
