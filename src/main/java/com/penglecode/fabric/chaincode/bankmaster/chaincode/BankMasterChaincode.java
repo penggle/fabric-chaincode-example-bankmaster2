@@ -43,11 +43,11 @@ public class BankMasterChaincode extends ChaincodeBase {
 	 */
 	@Override
 	public Response init(ChaincodeStub stub) {
-		List<String> args = stub.getParameters();
+		List<String> parameters = stub.getParameters();
 		LOGGER.info(">>> parameters = {}, args = {}", stub.getParameters(), stub.getStringArgs());
 		Double bankBalance = DEFAULT_ACCOUNT_BALANCE;
-		if(args.size() == 1 && NumberUtils.isCreatable(StringUtils.trimToEmpty(args.get(0))) 
-				&& (bankBalance = Double.parseDouble(StringUtils.trimToEmpty(args.get(0)))) > 0) {
+		if(parameters.size() == 1 && NumberUtils.isCreatable(StringUtils.trimToEmpty(parameters.get(0))) 
+				&& (bankBalance = Double.parseDouble(StringUtils.trimToEmpty(parameters.get(0)))) > 0) {
 			stub.putStringState(KEY_BANK_BALANCE, bankBalance.toString()); //初始化银行资产
 			return newSuccessResponse("初始化智能合约成功!");
         } else {
@@ -116,8 +116,7 @@ public class BankMasterChaincode extends ChaincodeBase {
 			account.setAccountBalance(ObjectUtils.defaultIfNull(account.getAccountBalance(), DEFAULT_ACCOUNT_BALANCE));
 			account.setCreatedTime(DateTimeUtils.formatNow());
 			account.setAccountNo(BankUtils.genBankCardNo(BANK_CARD_PREFIX));
-			String jsonAccount = JsonUtils.object2Json(account);
-			stub.putStringState(customerAccountKey(account.getAccountNo()), jsonAccount);
+			String jsonAccount = saveCustomerAccount(stub, account);
 			return newSuccessResponse("开户成功!", jsonAccount.getBytes(CHARSET));
 		} else {
 			return newErrorResponse("请求参数不合法：参数只能有一个，并且为json类型数据!");
@@ -155,6 +154,7 @@ public class BankMasterChaincode extends ChaincodeBase {
 				return newErrorResponse(String.format("对不起，账号(%s)不存在!", accountNo));
 			}
 			account.setAccountBalance(account.getAccountBalance() + amount); //更新余额
+			saveCustomerAccount(stub, account);
 			return newSuccessResponse("存款成功!", account.getAccountBalance().toString().getBytes(CHARSET));
 		} else {
 			return newErrorResponse("请求参数不合法：参数只能有两个!");
@@ -192,6 +192,7 @@ public class BankMasterChaincode extends ChaincodeBase {
 				return newErrorResponse(String.format("对不起，账号(%s)不存在!", accountNo));
 			}
 			account.setAccountBalance(account.getAccountBalance() - amount); //更新余额
+			saveCustomerAccount(stub, account);
 			return newSuccessResponse("取款成功!", account.getAccountBalance().toString().getBytes(CHARSET));
 		} else {
 			return newErrorResponse("请求参数不合法：参数只能有两个!");
@@ -239,6 +240,8 @@ public class BankMasterChaincode extends ChaincodeBase {
 			}
 			accountA.setAccountBalance(accountA.getAccountBalance() - amount); //更新余额
 			accountB.setAccountBalance(accountB.getAccountBalance() + amount); //更新余额
+			saveCustomerAccount(stub, accountA);
+			saveCustomerAccount(stub, accountB);
 			return newSuccessResponse("转账成功!", accountA.getAccountBalance().toString().getBytes(CHARSET));
 		} else {
 			return newErrorResponse("请求参数不合法：参数只能有三个!");
@@ -298,8 +301,14 @@ public class BankMasterChaincode extends ChaincodeBase {
 		return null;
 	}
 	
+	protected String saveCustomerAccount(ChaincodeStub stub, CustomerAccount account) {
+		String jsonAccount = JsonUtils.object2Json(account);
+		stub.putStringState(customerAccountKey(account.getAccountNo()), jsonAccount); //修改账本
+		return jsonAccount;
+	}
+	
 	public static void main(String[] args) {
-		System.out.println(">>> start : " + Arrays.toString(args));
+		LOGGER.info(">>> Chaincode starting, args = {}", Arrays.toString(args));
         new BankMasterChaincode().start(args);
     }
 
