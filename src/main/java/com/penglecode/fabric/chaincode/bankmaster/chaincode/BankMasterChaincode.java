@@ -44,9 +44,7 @@ public class BankMasterChaincode extends ChaincodeBase {
 	@Override
 	public Response init(ChaincodeStub stub) {
 		List<String> args = stub.getParameters();
-		System.out.println(">>> parameters1 = " + stub.getParameters());
-		LOGGER.info(">>> parameters2 = " + stub.getParameters());
-		LOGGER.info(">>> args = " + stub.getStringArgs());
+		LOGGER.info(">>> parameters = {}, args = {}", stub.getParameters(), stub.getStringArgs());
 		Double bankBalance = DEFAULT_ACCOUNT_BALANCE;
 		if(args.size() == 1 && NumberUtils.isCreatable(StringUtils.trimToEmpty(args.get(0))) 
 				&& (bankBalance = Double.parseDouble(StringUtils.trimToEmpty(args.get(0)))) > 0) {
