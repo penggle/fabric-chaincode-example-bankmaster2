@@ -277,7 +277,8 @@ public class BankMasterChaincode extends ChaincodeBase {
 	 */
 	protected Response getAllAccountList(ChaincodeStub stub, List<String> args) throws Exception {
 		List<String> accounts = new ArrayList<String>();
-		QueryResultsIterator<KeyValue> results = stub.getStateByPartialCompositeKey(KEY_PREFIX_CUSTOMER_ACCOUNT);
+		String compositeKey = stub.createCompositeKey(KEY_PREFIX_CUSTOMER_ACCOUNT).toString();
+		QueryResultsIterator<KeyValue> results = stub.getStateByPartialCompositeKey(compositeKey);
 		for(Iterator<KeyValue> it = results.iterator(); it.hasNext();) {
 			KeyValue kv = it.next();
 			accounts.add(kv.getStringValue());
@@ -287,12 +288,12 @@ public class BankMasterChaincode extends ChaincodeBase {
 		return newSuccessResponse("查询所有账户列表成功!", payload.getBytes(CHARSET));
 	}
 	
-	protected String customerAccountKey(String accountNo) {
-		return KEY_PREFIX_CUSTOMER_ACCOUNT + accountNo;
+	protected String customerAccountKey(ChaincodeStub stub, String accountNo) {
+		return stub.createCompositeKey(KEY_PREFIX_CUSTOMER_ACCOUNT, accountNo).toString();
 	}
 	
 	protected CustomerAccount getCustomerAccountByNo(ChaincodeStub stub, String accountNo) {
-		String key = customerAccountKey(accountNo);
+		String key = customerAccountKey(stub, accountNo);
 		String value = stub.getStringState(key);
 		if(!StringUtils.isEmpty(value)) {
 			return JsonUtils.json2Object(value, CustomerAccount.class);
@@ -302,7 +303,7 @@ public class BankMasterChaincode extends ChaincodeBase {
 	
 	protected String saveCustomerAccount(ChaincodeStub stub, CustomerAccount account) {
 		String jsonAccount = JsonUtils.object2Json(account);
-		stub.putStringState(customerAccountKey(account.getAccountNo()), jsonAccount); //修改账本
+		stub.putStringState(customerAccountKey(stub, account.getAccountNo()), jsonAccount); //修改账本
 		return jsonAccount;
 	}
 	
