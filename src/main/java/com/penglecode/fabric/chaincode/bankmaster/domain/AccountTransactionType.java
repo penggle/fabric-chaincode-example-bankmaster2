@@ -18,4 +18,13 @@ public enum AccountTransactionType {
 		this.description = description;
 	}
 	
+	public static AccountTransactionType getTransactionType(String name) {
+		for(AccountTransactionType em : values()) {
+			if(em.name().equals(name)) {
+				return em;
+			}
+		}
+		return null;
+	}
+	
 }

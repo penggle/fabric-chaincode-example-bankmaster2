@@ -13,14 +13,14 @@ public class AccountTransactionRecord implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
 	/**
+	 * 交易ID，同stub.getTxId()
+	 */
+	private String transactionId;
+	
+	/**
 	 * 交易账户
 	 */
 	private String transactionAccountNo;
-	
-	/**
-	 * 交易类型
-	 */
-	private AccountTransactionType transactionType;
 	
 	/**
 	 * 账户交易前金额
@@ -40,28 +40,48 @@ public class AccountTransactionRecord implements Serializable {
 	/**
 	 * 如果是转账类型，则为对方账号
 	 */
-	private String transferAccountNo;
+	private String transferRelateAccountNo;
+	
+	/**
+	 * 交易类型
+	 */
+	private String transactionType;
+	
+	/**
+	 * 交易描述
+	 */
+	private String transactionDesc;
 	
 	/**
 	 * 交易时间
 	 */
 	private String transactionTime;
-
+	
 	public AccountTransactionRecord() {
 		super();
 	}
 
-	public AccountTransactionRecord(String transactionAccountNo, AccountTransactionType transactionType,
-			Double beforeAccountBalance, Double afterAccountBalance, Double transactionBalance,
-			String transferAccountNo, String transactionTime) {
+	public AccountTransactionRecord(String transactionId, String transactionAccountNo, Double beforeAccountBalance,
+			Double afterAccountBalance, Double transactionBalance, String transferRelateAccountNo,
+			String transactionType, String transactionDesc, String transactionTime) {
 		super();
+		this.transactionId = transactionId;
 		this.transactionAccountNo = transactionAccountNo;
-		this.transactionType = transactionType;
 		this.beforeAccountBalance = beforeAccountBalance;
 		this.afterAccountBalance = afterAccountBalance;
 		this.transactionBalance = transactionBalance;
-		this.transferAccountNo = transferAccountNo;
+		this.transferRelateAccountNo = transferRelateAccountNo;
+		this.transactionType = transactionType;
+		this.transactionDesc = transactionDesc;
 		this.transactionTime = transactionTime;
+	}
+
+	public String getTransactionId() {
+		return transactionId;
+	}
+
+	public void setTransactionId(String transactionId) {
+		this.transactionId = transactionId;
 	}
 
 	public String getTransactionAccountNo() {
@@ -70,14 +90,6 @@ public class AccountTransactionRecord implements Serializable {
 
 	public void setTransactionAccountNo(String transactionAccountNo) {
 		this.transactionAccountNo = transactionAccountNo;
-	}
-
-	public AccountTransactionType getTransactionType() {
-		return transactionType;
-	}
-
-	public void setTransactionType(AccountTransactionType transactionType) {
-		this.transactionType = transactionType;
 	}
 
 	public Double getBeforeAccountBalance() {
@@ -104,12 +116,28 @@ public class AccountTransactionRecord implements Serializable {
 		this.transactionBalance = transactionBalance;
 	}
 
-	public String getTransferAccountNo() {
-		return transferAccountNo;
+	public String getTransferRelateAccountNo() {
+		return transferRelateAccountNo;
 	}
 
-	public void setTransferAccountNo(String transferAccountNo) {
-		this.transferAccountNo = transferAccountNo;
+	public void setTransferRelateAccountNo(String transferRelateAccountNo) {
+		this.transferRelateAccountNo = transferRelateAccountNo;
+	}
+
+	public String getTransactionType() {
+		return transactionType;
+	}
+
+	public void setTransactionType(String transactionType) {
+		this.transactionType = transactionType;
+	}
+
+	public String getTransactionDesc() {
+		return transactionDesc;
+	}
+
+	public void setTransactionDesc(String transactionDesc) {
+		this.transactionDesc = transactionDesc;
 	}
 
 	public String getTransactionTime() {
@@ -119,5 +147,5 @@ public class AccountTransactionRecord implements Serializable {
 	public void setTransactionTime(String transactionTime) {
 		this.transactionTime = transactionTime;
 	}
-	
+
 }

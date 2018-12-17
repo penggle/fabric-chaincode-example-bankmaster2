@@ -72,6 +72,19 @@ public class DateTimeUtils {
 	 * @param pattern
 	 * @return
 	 */
+	public static String format(LocalDateTime dateTime, String pattern){
+		Assert.notNull(dateTime, "Parameter 'dateTime' can not be null!");
+		Assert.hasText(pattern, "Parameter 'pattern' can not be empty!");
+		return dateTime.format(DateTimeFormatter.ofPattern(pattern));
+	}
+	
+	/**
+	 * <p>将@{code java.util.Date}以指定的日期格式格式化为字符串</p>
+	 * 
+	 * @param date
+	 * @param pattern
+	 * @return
+	 */
 	public static String format(Date date, String pattern){
 		Assert.notNull(date, "Parameter 'date' can not be null!");
 		Assert.hasText(pattern, "Parameter 'pattern' can not be empty!");
