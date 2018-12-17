@@ -3,12 +3,12 @@ package com.penglecode.fabric.chaincode.bankmaster.domain;
 import java.io.Serializable;
 
 /**
- * 客户账户交易记录
+ * 客户账户交易
  * 
  * @author 	pengpeng
  * @date	2018年12月14日 下午5:24:55
  */
-public class AccountTransactionRecord implements Serializable {
+public class AccountTransaction implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 	
@@ -57,11 +57,11 @@ public class AccountTransactionRecord implements Serializable {
 	 */
 	private String transactionTime;
 	
-	public AccountTransactionRecord() {
+	public AccountTransaction() {
 		super();
 	}
 
-	public AccountTransactionRecord(String transactionId, String transactionAccountNo, Double beforeAccountBalance,
+	public AccountTransaction(String transactionId, String transactionAccountNo, Double beforeAccountBalance,
 			Double afterAccountBalance, Double transactionBalance, String transferRelateAccountNo,
 			String transactionType, String transactionDesc, String transactionTime) {
 		super();

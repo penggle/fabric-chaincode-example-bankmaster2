@@ -2,8 +2,6 @@ package com.penglecode.fabric.chaincode.bankmaster.chaincode;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -22,7 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
-import com.penglecode.fabric.chaincode.bankmaster.domain.AccountTransactionRecord;
+import com.penglecode.fabric.chaincode.bankmaster.domain.AccountTransaction;
 import com.penglecode.fabric.chaincode.bankmaster.domain.AccountTransactionType;
 import com.penglecode.fabric.chaincode.bankmaster.domain.CustomerAccount;
 import com.penglecode.fabric.chaincode.common.util.BankUtils;
@@ -43,7 +41,7 @@ public class BankMasterChaincode extends ChaincodeBase {
 	
 	private static final String KEY_PREFIX_CUSTOMER_ACCOUNT = "CUSTOMER_ACCOUNT_";
 	
-	private static final String KEY_PREFIX_ACCOUNT_TRANSACTION_RECORD = "ACCOUNT_TRANSACTION_RECORD_";
+	private static final String KEY_PREFIX_ACCOUNT_TRANSACTION = "ACCOUNT_TRANSACTION_";
 	
 	/**
 	 * 智能合约初始化
@@ -93,8 +91,10 @@ public class BankMasterChaincode extends ChaincodeBase {
         	return transferAccount(stub, args);
         } else if ("getAccountBalance".equals(function)) {
         	return getAccountBalance(stub, args);
-        } else if ("getAllAccountList".equals(function)) {
-        	return getAllAccountList(stub, args);
+        } else if ("getAllAccounts".equals(function)) {
+        	return getAllAccounts(stub, args);
+        } else if ("getAccountTransactionRecords".equals(function)) {
+        	return getAccountTransactionRecords(stub, args);
         }
 		return newErrorResponse(String.format("不存在的智能合约方法名: %s", function));
 	}
@@ -124,9 +124,14 @@ public class BankMasterChaincode extends ChaincodeBase {
 			account.setAccountBalance(ObjectUtils.defaultIfNull(account.getAccountBalance(), DEFAULT_ACCOUNT_BALANCE));
 			account.setCreatedTime(nowTime);
 			account.setAccountNo(BankUtils.genBankCardNo(BANK_CARD_PREFIX));
-			account.setLatestTransactionType(AccountTransactionType.CREATE_ACCOUNT.name());
 			
 			String jsonAccount = saveCustomerAccount(stub, account); //保存账户
+			
+			AccountTransaction transaction = new AccountTransaction(stub.getTxId(), account.getAccountNo(), 0.0,
+					account.getAccountBalance(), account.getAccountBalance(), null,
+					AccountTransactionType.CREATE_ACCOUNT.name(), AccountTransactionType.CREATE_ACCOUNT.getDescription(), nowTime);
+			
+			saveAccountTransaction(stub, transaction); //保存账户交易快照
 			
 			saveBankBalance(stub, account.getAccountBalance()); //保存银行余额
 			
@@ -166,11 +171,17 @@ public class BankMasterChaincode extends ChaincodeBase {
 			if(account == null) {
 				return newErrorResponse(String.format("对不起，账号(%s)不存在!", accountNo));
 			}
+			String nowTime = DateTimeUtils.formatNow();
 			double balance = account.getAccountBalance();
 			account.setAccountBalance(balance + amount); //更新余额
-			account.setLatestTransactionType(AccountTransactionType.DEPOSITE_MONEY.name());
 			
 			saveCustomerAccount(stub, account); //保存账户
+			
+			AccountTransaction transaction = new AccountTransaction(stub.getTxId(), account.getAccountNo(), balance,
+					account.getAccountBalance(), amount, null,
+					AccountTransactionType.DEPOSITE_MONEY.name(), AccountTransactionType.DEPOSITE_MONEY.getDescription(), nowTime);
+			
+			saveAccountTransaction(stub, transaction); //保存账户交易快照
 			
 			saveBankBalance(stub, amount); //保存银行余额
 			
@@ -210,11 +221,17 @@ public class BankMasterChaincode extends ChaincodeBase {
 			if(account == null) {
 				return newErrorResponse(String.format("对不起，账号(%s)不存在!", accountNo));
 			}
+			String nowTime = DateTimeUtils.formatNow();
 			double balance = account.getAccountBalance();
 			account.setAccountBalance(balance - amount); //更新余额
-			account.setLatestTransactionType(AccountTransactionType.DRAWAL_MONEY.name());
 			
 			saveCustomerAccount(stub, account); //保存账户
+			
+			AccountTransaction transaction = new AccountTransaction(stub.getTxId(), account.getAccountNo(), balance,
+					account.getAccountBalance(), amount, null,
+					AccountTransactionType.DRAWAL_MONEY.name(), AccountTransactionType.DRAWAL_MONEY.getDescription(), nowTime);
+			
+			saveAccountTransaction(stub, transaction); //保存账户交易快照
 			
 			saveBankBalance(stub, -amount); //保存银行余额
 			
@@ -263,19 +280,30 @@ public class BankMasterChaincode extends ChaincodeBase {
 			if(accountB == null) {
 				return newErrorResponse(String.format("对不起，转入账号(%s)不存在!", accountBNo));
 			}
+			String nowTime = DateTimeUtils.formatNow();
 			double balanceA = accountA.getAccountBalance();
 			accountA.setAccountBalance(balanceA - amount); //更新余额
-			accountA.setLatestTransactionType(AccountTransactionType.TRANSFER_OUT.name());
 			
 			double balanceB = accountB.getAccountBalance();
 			accountB.setAccountBalance(balanceB + amount); //更新余额
-			accountB.setLatestTransactionType(AccountTransactionType.TRANSFER_IN.name());
 			
 			saveCustomerAccount(stub, accountA); //保存账户
+			
+			AccountTransaction transactionA = new AccountTransaction(stub.getTxId(), accountA.getAccountNo(), balanceA,
+					accountA.getAccountBalance(), amount, null,
+					AccountTransactionType.TRANSFER_OUT.name(), AccountTransactionType.TRANSFER_OUT.getDescription(), nowTime);
+			
+			saveAccountTransaction(stub, transactionA); //保存账户交易快照
 			
 			saveBankBalance(stub, -amount); //保存银行余额
 			
 			saveCustomerAccount(stub, accountB); //保存账户
+			
+			AccountTransaction transactionB = new AccountTransaction(stub.getTxId(), accountB.getAccountNo(), balanceB,
+					accountB.getAccountBalance(), amount, null,
+					AccountTransactionType.TRANSFER_IN.name(), AccountTransactionType.TRANSFER_IN.getDescription(), nowTime);
+			
+			saveAccountTransaction(stub, transactionB); //保存账户交易快照
 			
 			saveBankBalance(stub, amount); //保存银行余额
 			
@@ -313,7 +341,7 @@ public class BankMasterChaincode extends ChaincodeBase {
 	 * @return
 	 * @throws Exception
 	 */
-	protected Response getAllAccountList(ChaincodeStub stub, List<String> args) throws Exception {
+	protected Response getAllAccounts(ChaincodeStub stub, List<String> args) throws Exception {
 		List<String> accounts = new ArrayList<String>();
 		String compositeKey = stub.createCompositeKey(KEY_PREFIX_CUSTOMER_ACCOUNT).toString();
 		QueryResultsIterator<KeyValue> results = stub.getStateByPartialCompositeKey(compositeKey);
@@ -335,9 +363,9 @@ public class BankMasterChaincode extends ChaincodeBase {
 	 * @return
 	 * @throws Exception
 	 */
-	protected Response getAccountTransactionRecordList(ChaincodeStub stub, List<String> args) throws Exception {
+	protected Response getAccountTransactionRecords(ChaincodeStub stub, List<String> args) throws Exception {
 		String accountNo = null;
-		int fetchCount = 10;
+		int fetchSize = 10;
 		if(CollectionUtils.isEmpty(args)) {
 			return newErrorResponse("请求参数不合法：至少需要1个参数(16位银行卡号)!");
 		} else if ((accountNo = StringUtils.trimToEmpty(args.get(0))).matches("\\d{16}")) {
@@ -345,60 +373,39 @@ public class BankMasterChaincode extends ChaincodeBase {
 		} else if (args.size() > 2) {
 			return newErrorResponse("请求参数不合法：参数最多只能有2个，且第一个是16位银行卡号、第2个是返回记录条数!");
 		} else {
-			if(args.size() <= 2) {
+			if(args.size() == 2) {
 				try {
-					fetchCount = Integer.valueOf(StringUtils.trim(args.get(1)));
+					fetchSize = Integer.valueOf(args.get(1));
+					fetchSize = fetchSize > 0 ? fetchSize : 10;
 				} catch (Exception e) {}
 			}
-			String key = customerAccountKey(stub, accountNo);
+			List<String> records = new ArrayList<String>();
+			String key = createAccountTransactionKey(stub, accountNo);
 			QueryResultsIterator<KeyModification> qrIterator = stub.getHistoryForKey(key);
-			List<KeyModification> keyModifications = new ArrayList<KeyModification>();
 			int count = 0;
-			for(Iterator<KeyModification> it = qrIterator.iterator(); it.hasNext();) {
-				keyModifications.add(it.next());
-				if(count++ == fetchCount) {
-					break;
+			if(qrIterator != null) {
+				Iterator<KeyModification> it = qrIterator.iterator();
+				while(it.hasNext()) {
+					records.add(it.next().getStringValue());
+					if(++count >= fetchSize) {
+						break;
+					}
 				}
 			}
+			return newSuccessResponse("查询账户交易记录成功!", records.toString().getBytes(CHARSET));
 		}
-		return null;
 	}
 	
-	protected List<AccountTransactionRecord> calculateAccountTransactionRecords(List<KeyModification> keyModifications) {
-		List<AccountTransactionRecord> recordList = new ArrayList<AccountTransactionRecord>();
-		if(!CollectionUtils.isEmpty(keyModifications)) {
-			int len = keyModifications.size();
-			KeyModification currentKeyMod = null, prevKeyMod = null;
-			for(int i = 0; i < len; i++) {
-				currentKeyMod = keyModifications.get(i);
-				if(i > 0) {
-					prevKeyMod = keyModifications.get(i - 1);
-				}
-				CustomerAccount currentAccount = JsonUtils.json2Object(currentKeyMod.getStringValue(), CustomerAccount.class);
-				CustomerAccount prevAccount = prevKeyMod == null ? null : JsonUtils.json2Object(prevKeyMod.getStringValue(), CustomerAccount.class);
-				
-				AccountTransactionRecord record = new AccountTransactionRecord();
-				record.setTransactionId(currentKeyMod.getTxId());
-				record.setTransactionAccountNo(currentAccount.getAccountNo());
-				record.setBeforeAccountBalance(prevAccount == null ? 0.0 : prevAccount.getAccountBalance());
-				record.setAfterAccountBalance(currentAccount.getAccountBalance());
-				record.setTransactionBalance(record.getAfterAccountBalance() - record.getBeforeAccountBalance());
-				AccountTransactionType transactionType = AccountTransactionType.getTransactionType(currentAccount.getLatestTransactionType());
-				record.setTransactionType(transactionType.name());
-				record.setTransactionDesc(transactionType.getDescription());
-				String transactionTime = DateTimeUtils.format(LocalDateTime.ofInstant(currentKeyMod.getTimestamp(), ZoneId.systemDefault()), DateTimeUtils.DEFAULT_DATETIME_PATTERN);
-				record.setTransactionTime(transactionTime);
-			}
-		}
-		return null;
-	}
-	
-	protected String customerAccountKey(ChaincodeStub stub, String accountNo) {
+	protected String createCustomerAccountKey(ChaincodeStub stub, String accountNo) {
 		return stub.createCompositeKey(KEY_PREFIX_CUSTOMER_ACCOUNT, accountNo).toString();
 	}
 	
+	protected String createAccountTransactionKey(ChaincodeStub stub, String accountNo) {
+		return stub.createCompositeKey(KEY_PREFIX_ACCOUNT_TRANSACTION, accountNo).toString();
+	}
+	
 	protected CustomerAccount getCustomerAccountByNo(ChaincodeStub stub, String accountNo) {
-		String key = customerAccountKey(stub, accountNo);
+		String key = createCustomerAccountKey(stub, accountNo);
 		String value = stub.getStringState(key);
 		if(!StringUtils.isEmpty(value)) {
 			return JsonUtils.json2Object(value, CustomerAccount.class);
@@ -408,8 +415,14 @@ public class BankMasterChaincode extends ChaincodeBase {
 	
 	protected String saveCustomerAccount(ChaincodeStub stub, CustomerAccount account) {
 		String jsonAccount = JsonUtils.object2Json(account);
-		stub.putStringState(customerAccountKey(stub, account.getAccountNo()), jsonAccount); //修改账本
+		stub.putStringState(createCustomerAccountKey(stub, account.getAccountNo()), jsonAccount); //修改账本
 		return jsonAccount;
+	}
+	
+	protected String saveAccountTransaction(ChaincodeStub stub, AccountTransaction transaction) {
+		String jsonTransaction = JsonUtils.object2Json(transaction);
+		stub.putStringState(createAccountTransactionKey(stub, transaction.getTransactionAccountNo()), jsonTransaction); //修改账本
+		return jsonTransaction;
 	}
 	
 	protected Double saveBankBalance(ChaincodeStub stub, Double delta) {

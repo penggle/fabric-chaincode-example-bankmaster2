@@ -24,8 +24,6 @@ public class CustomerAccount implements Serializable {
 	
 	private Double accountBalance;
 	
-	private String latestTransactionType;
-
 	public String getAccountNo() {
 		return accountNo;
 	}
@@ -72,14 +70,6 @@ public class CustomerAccount implements Serializable {
 
 	public void setAccountBalance(Double accountBalance) {
 		this.accountBalance = accountBalance;
-	}
-
-	public String getLatestTransactionType() {
-		return latestTransactionType;
-	}
-
-	public void setLatestTransactionType(String latestTransactionType) {
-		this.latestTransactionType = latestTransactionType;
 	}
 
 }
