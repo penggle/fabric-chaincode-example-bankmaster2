@@ -368,7 +368,7 @@ public class BankMasterChaincode extends ChaincodeBase {
 		int fetchSize = 10;
 		if(CollectionUtils.isEmpty(args)) {
 			return newErrorResponse("请求参数不合法：至少需要1个参数(16位银行卡号)!");
-		} else if ((accountNo = StringUtils.trimToEmpty(args.get(0))).matches("\\d{16}")) {
+		} else if (!(accountNo = StringUtils.trimToEmpty(args.get(0))).matches("\\d{16}")) {
 			return newErrorResponse("请求参数不合法：第1个参数必须是16位银行卡号!");
 		} else if (args.size() > 2) {
 			return newErrorResponse("请求参数不合法：参数最多只能有2个，且第一个是16位银行卡号、第2个是返回记录条数!");
